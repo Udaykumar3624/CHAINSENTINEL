@@ -84,6 +84,7 @@ def create_case(payload: CaseCreateRequest):
     return CaseResponse(**new_case)
 
 @router.get("", response_model=List[CaseResponse])
+@router.get("/", response_model=List[CaseResponse], include_in_schema=False)
 def get_cases(
     status_filter: Optional[str] = Query(None, alias="status"),
     priority_filter: Optional[str] = Query(None, alias="priority")

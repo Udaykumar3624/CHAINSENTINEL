@@ -22,6 +22,7 @@ class AlertStatusUpdateRequest(BaseModel):
     status: str = Field(..., description="new, under_review, resolved, false_positive")
 
 @router.get("", response_model=List[AlertResponseItem])
+@router.get("/", response_model=List[AlertResponseItem], include_in_schema=False)
 def get_alerts(
     risk_level: Optional[str] = Query(None, description="Filter by risk level: low, medium, high, critical"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: new, under_review, resolved, false_positive"),
