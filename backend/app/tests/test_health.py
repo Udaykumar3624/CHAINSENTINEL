@@ -18,3 +18,12 @@ def test_api_v1_health_endpoint():
     data = response.json()
     assert data["status"] == "ok"
     assert data["environment"] is not None
+
+def test_root_info_endpoint():
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["service"] == "ChainSentinel"
+    assert data["status"] == "online"
+    assert data["version"] == "SIH26146"
+

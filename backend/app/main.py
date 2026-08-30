@@ -47,6 +47,15 @@ async def log_requests(request: Request, call_next):
     logger.info(f"{request.method} {request.url.path} -> status {response.status_code} ({duration_ms}ms)")
     return response
 
+# Root service discovery and status endpoint
+@app.get("/", tags=["System"])
+def root_info():
+    return {
+        "service": "ChainSentinel",
+        "status": "online",
+        "version": "SIH26146"
+    }
+
 # Root health check endpoint for cloud probes
 @app.get("/health", tags=["Health"])
 def root_health():
