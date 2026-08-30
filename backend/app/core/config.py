@@ -1,6 +1,7 @@
 import os
+import secrets
 from typing import List, Union
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
         return v
 
     # Security and Auth settings
-    JWT_SECRET_KEY: str = "chainsentinel-sih26146-super-secret-jwt-key-2026"
+    JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 600
 
