@@ -1,0 +1,4 @@
+transaction_id,timestamp,input_address,output_address,amount_btc,scenario,label
+tx_txt_001,2026-08-30T16:00:00Z,bc1qtxt_norm01,bc1qtxt_norm02,0.45,normal,normal
+tx_txt_002,2026-08-30T16:05:00Z,bc1qtxt_rapid01,bc1qtxt_rapid02,18.5,rapid_forwarding,suspicious
+tx_txt_003,2026-08-30T16:10:00Z,bc1qtxt_peel01,bc1qtxt_peel02,9.3,peeling_chain,suspicious

@@ -1,0 +1,29 @@
+[
+  {
+    "txid": "tx_json_001",
+    "datetime": "2026-08-30T14:00:00Z",
+    "from_address": "bc1qjson_norm01",
+    "to_address": "bc1qjson_norm02",
+    "amount": 0.5,
+    "pattern": "normal",
+    "target": "normal"
+  },
+  {
+    "txid": "tx_json_002",
+    "datetime": "2026-08-30T14:05:00Z",
+    "from_address": "bc1qjson_rapid01",
+    "to_address": "bc1qjson_rapid02",
+    "amount": 14.8,
+    "pattern": "rapid_forwarding",
+    "target": "suspicious"
+  },
+  {
+    "txid": "tx_json_003",
+    "datetime": "2026-08-30T14:10:00Z",
+    "from_address": "bc1qjson_cycle01",
+    "to_address": "bc1qjson_cycle02",
+    "amount": 6.2,
+    "pattern": "circular_flow",
+    "target": "suspicious"
+  }
+]

@@ -1,0 +1,12 @@
+[project]
+name = "chainsentinel-backend"
+version = "0.1.0"
+description = "ChainSentinel FastAPI backend service for Bitcoin transaction risk monitoring"
+authors = [{ name = "ChainSentinel Team" }]
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+python_files = ["test_*.py"]
+pythonpath = ["."]
+asyncio_mode = "auto"
