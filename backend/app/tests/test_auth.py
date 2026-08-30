@@ -94,3 +94,26 @@ def test_logout_endpoint():
     headers = {"Authorization": f"Bearer {token}"}
     logout_res = client.post("/api/v1/auth/logout", headers=headers)
     assert logout_res.status_code == 200
+
+def test_cors_preflight_and_allowed_origin():
+    # Test OPTIONS preflight request
+    resp_opt = client.options("/api/v1/auth/login", headers={
+        "Origin": "https://chainsentinel-5pns.vercel.app",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type",
+    })
+    assert resp_opt.status_code == 200
+    assert resp_opt.headers.get("access-control-allow-origin") == "https://chainsentinel-5pns.vercel.app"
+    assert resp_opt.headers.get("access-control-allow-credentials") == "true"
+
+    # Test POST request with Origin header
+    resp_post = client.post("/api/v1/auth/login", headers={
+        "Origin": "https://chainsentinel-5pns.vercel.app",
+    }, json={
+        "username": settings.DEMO_USERNAME,
+        "password": settings.DEMO_PASSWORD
+    })
+    assert resp_post.status_code == 200
+    assert resp_post.headers.get("access-control-allow-origin") == "https://chainsentinel-5pns.vercel.app"
+    assert "access_token" in resp_post.json()
+
