@@ -124,7 +124,7 @@ export const DashboardPage: React.FC = () => {
       <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-6 text-center space-y-3">
         <AlertTriangle className="w-8 h-8 text-rose-400 mx-auto" />
         <h2 className="text-sm font-bold text-rose-400">Failed to connect to ChainSentinel Backend</h2>
-        <p className="text-xs text-slate-300">Ensure the FastAPI backend service is running at http://localhost:8000.</p>
+        <p className="text-xs text-slate-300">Ensure the ChainSentinel FastAPI backend service is operational and accessible.</p>
       </div>
     );
   }

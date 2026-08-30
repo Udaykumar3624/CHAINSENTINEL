@@ -518,6 +518,10 @@ export const getDatasetDownloadUrl = (datasetId: string): string => {
   return `${API_BASE_URL}/dataset/download/${datasetId}`;
 };
 
+export const getCasePdfUrl = (caseId: string): string => {
+  return `${API_BASE_URL}/cases/${caseId}/report.pdf`;
+};
+
 export interface ConfusionMatrixInfo {
   tn: number;
   fp: number;

@@ -19,6 +19,7 @@ import {
   fetchCases,
   createCase,
   addCaseNote,
+  getCasePdfUrl,
   CaseItem
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -89,7 +90,7 @@ export const CasesPage: React.FC = () => {
   };
 
   const handleExportPdf = (caseId: string) => {
-    const pdfUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'}/cases/${caseId}/report.pdf`;
+    const pdfUrl = getCasePdfUrl(caseId);
     window.open(pdfUrl, '_blank');
   };
 

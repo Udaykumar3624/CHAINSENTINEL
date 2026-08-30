@@ -27,6 +27,7 @@ import {
   fetchEntityGraph,
   createCase,
   getDatasetDownloadUrl,
+  getCasePdfUrl,
   CytoscapeNodeData
 } from '../services/api';
 import { CytoscapeGraph } from '../components/CytoscapeGraph';
@@ -523,10 +524,10 @@ export const JudgeDemoPage: React.FC = () => {
               </div>
 
               <a
-                href={`http://localhost:8000/api/v1/cases/${createdCaseId}/report.pdf`}
+                href={getCasePdfUrl(createdCaseId)}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center space-x-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl font-mono"
+                className="inline-flex items-center space-x-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl font-mono cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Official PDF Forensic Report</span>

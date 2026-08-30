@@ -47,7 +47,7 @@ export const LoginPage: React.FC = () => {
       if (typeof detail === 'string') {
         setErrorMessage(detail);
       } else if (err.code === 'ERR_NETWORK' || !err.response) {
-        setErrorMessage('Unable to connect to ChainSentinel Backend. Please verify backend service at http://localhost:8000');
+        setErrorMessage('Unable to connect to ChainSentinel Backend. Please verify backend availability or check your network connection.');
       } else {
         setErrorMessage('Invalid username/email or password.');
       }
