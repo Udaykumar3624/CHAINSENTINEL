@@ -13,7 +13,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/chainsentinel"
 
     # CORS settings
-    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:5173,http://127.0.0.1:5173"
+    CORS_ORIGINS: Union[str, List[str]] = (
+        "http://localhost:5173,"
+        "http://127.0.0.1:5173,"
+        "https://chainsentinel-5pns.vercel.app,"
+        "https://chainsentinel.vercel.app"
+    )
 
     @field_validator("CORS_ORIGINS", mode="before")
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:

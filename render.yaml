@@ -19,6 +19,6 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: 600
       - key: CORS_ORIGINS
-        value: "http://localhost:5173,https://chainsentinel.vercel.app"
+        value: "http://localhost:5173,https://chainsentinel-5pns.vercel.app,https://chainsentinel.vercel.app"
       - key: DATABASE_URL
         value: sqlite:///./chainsentinel.db

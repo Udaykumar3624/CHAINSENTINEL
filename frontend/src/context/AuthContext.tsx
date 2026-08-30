@@ -42,12 +42,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await fetchCurrentUser();
       setUser(userData);
       localStorage.setItem('chainsentinel_user', JSON.stringify(userData));
-    } catch (err) {
-      console.warn("Session restore failed, clearing token.", err);
-      localStorage.removeItem('chainsentinel_token');
-      localStorage.removeItem('chainsentinel_user');
-      setUser(null);
-      setToken(null);
+    } catch (err: any) {
+      if (err.response && err.response.status === 401) {
+        console.warn("Session expired (401), clearing token.");
+        localStorage.removeItem('chainsentinel_token');
+        localStorage.removeItem('chainsentinel_user');
+        setUser(null);
+        setToken(null);
+      } else {
+        // If transient network error (e.g. cloud spin-up), keep cached session credentials
+        console.warn("Auth server unreachable on refresh, retaining cached session.");
+      }
     } finally {
       setIsLoading(false);
     }
