@@ -35,6 +35,7 @@ yarn-error.log*
 .pnpm-debug.log*
 dist/
 dist-ssr/
+.vite/
 *.local
 
 # Environment & Secrets (NEVER COMMIT)
