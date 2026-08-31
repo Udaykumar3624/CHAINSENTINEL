@@ -101,3 +101,20 @@ async def analyze_csv(request: Request, file: UploadFile = File(...)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to process CSV transaction batch: {str(e)}"
         )
+
+from app.services.reports.pdf_generator import PDFReportService
+from fastapi.responses import Response
+
+pdf_service = PDFReportService()
+
+@router.post("/export-pdf")
+def export_investigation_pdf(payload: dict):
+    pdf_bytes = pdf_service.generate_investigation_pdf(payload)
+    subject = str(payload.get("subject_id", "investigation"))[:16]
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=ChainSentinel_Investigation_{subject}.pdf"
+        }
+    )

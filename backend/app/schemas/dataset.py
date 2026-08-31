@@ -65,6 +65,18 @@ class DatasetAnalysisResultItem(BaseModel):
     computed_risk_level: str
     top_signal: str
     timestamp: str = "2026-08-30T00:00:00Z"
+    src_ip: Optional[str] = None
+    dst_ip: Optional[str] = None
+    src_port: Optional[int] = 8333
+    dst_port: Optional[int] = 8333
+    geo_country: Optional[str] = None
+    asn: Optional[str] = None
+    src_country: Optional[str] = None
+    dst_country: Optional[str] = None
+    src_asn: Optional[str] = None
+    dst_asn: Optional[str] = None
+    network_context: Optional[Dict[str, Any]] = None
+
 
 class DatasetAnalysisResponse(BaseModel):
     dataset_id: str

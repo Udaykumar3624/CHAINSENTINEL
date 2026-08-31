@@ -304,6 +304,7 @@ export const DatasetExplorerPage: React.FC = () => {
                     </div>
                   </th>
                   <th className="p-3">Scenario</th>
+                  <th className="p-3">Geo-IP / ASN</th>
                   <th className="p-3 cursor-pointer" onClick={() => handleSort('computed_risk_score')}>
                     <div className="flex items-center space-x-1">
                       <span>Risk Score</span>
@@ -328,6 +329,16 @@ export const DatasetExplorerPage: React.FC = () => {
                       }`}>
                         {tx.ground_truth_scenario.replace('_', ' ')}
                       </span>
+                    </td>
+                    <td className="p-3">
+                      {tx.geo_country || tx.src_country ? (
+                        <div className="flex flex-col text-[10px]">
+                          <span className="text-cyan-300 font-bold">{tx.geo_country || tx.src_country}</span>
+                          <span className="text-slate-500">{tx.asn || tx.src_asn || 'AS-Local'}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 text-[10px]">Local Net</span>
+                      )}
                     </td>
                     <td className="p-3">
                       <span className={`font-bold ${

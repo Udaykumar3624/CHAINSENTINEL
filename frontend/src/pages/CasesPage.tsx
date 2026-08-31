@@ -20,6 +20,7 @@ import {
   createCase,
   addCaseNote,
   getCasePdfUrl,
+  exportCasePdfBlob,
   CaseItem
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -89,9 +90,21 @@ export const CasesPage: React.FC = () => {
     addNoteMutation.mutate({ caseId, text: text.trim() });
   };
 
-  const handleExportPdf = (caseId: string) => {
-    const pdfUrl = getCasePdfUrl(caseId);
-    window.open(pdfUrl, '_blank');
+  const handleExportPdf = async (caseId: string, caseNumber?: string) => {
+    try {
+      const blob = await exportCasePdfBlob(caseId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ChainSentinel_Report_${caseNumber || caseId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      const pdfUrl = getCasePdfUrl(caseId);
+      window.open(pdfUrl, '_blank');
+    }
   };
 
   return (

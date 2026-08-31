@@ -133,7 +133,18 @@ class ActiveDatasetStore:
                 computed_risk_score=analysis.risk_score,
                 computed_risk_level=analysis.risk_level,
                 top_signal=analysis.signals[0].title if analysis.signals else "Standard Profile",
-                timestamp=ts
+                timestamp=ts,
+                src_ip=tx.src_ip,
+                dst_ip=tx.dst_ip,
+                src_port=tx.src_port,
+                dst_port=tx.dst_port,
+                geo_country=tx.geo_country,
+                asn=tx.asn,
+                src_country=tx.src_country,
+                dst_country=tx.dst_country,
+                src_asn=tx.src_asn,
+                dst_asn=tx.dst_asn,
+                network_context=tx.network_context
             ))
 
         pagerank_dict = {}

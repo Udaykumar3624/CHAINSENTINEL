@@ -153,6 +153,13 @@ class Case(Base):
     priority: Mapped[CasePriority] = mapped_column(Enum(CasePriority), default=CasePriority.MEDIUM, nullable=False)
     status: Mapped[CaseStatus] = mapped_column(Enum(CaseStatus), default=CaseStatus.OPEN, index=True, nullable=False)
     assigned_user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    assigned_investigator: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, default="Demo Investigator")
+    evidence_payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    network_context: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    risk_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    risk_level: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    linked_addresses_json: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    linked_transactions_json: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 

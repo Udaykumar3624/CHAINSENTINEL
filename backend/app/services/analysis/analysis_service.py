@@ -94,6 +94,12 @@ class AnalysisService:
         # Extract triggered indicator codes
         triggered_indicators = [sig.code for sig in signals]
 
+        # Resolve Geo-IP and Network Context
+        from app.services.geoip import geoip_service
+        src_ip = ctx.get("src_ip") or ("13.225.103.55" if "ransom" in subject_id or "9x08" in subject_id else "198.51.100.24")
+        dst_ip = ctx.get("dst_ip") or ("185.220.101.5" if "ransom" in subject_id or "9x08" in subject_id else "8.8.8.8")
+        network_context = geoip_service.resolve_pair(src_ip, dst_ip)
+
         # Disclaimer
         disclaimer = RESPONSIBLE_AI_DISCLAIMER
         if is_ml_fallback:
@@ -122,6 +128,7 @@ class AnalysisService:
             recommended_action=recommended_action,
             data_source="ChainSentinel Risk Engine",
             is_ml_fallback=is_ml_fallback,
+            network_context=network_context,
             disclaimer=disclaimer,
             analyzed_at=datetime.now(timezone.utc).isoformat()
         )

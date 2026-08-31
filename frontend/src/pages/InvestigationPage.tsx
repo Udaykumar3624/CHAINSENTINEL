@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Shield,
   Network,
@@ -16,12 +16,20 @@ import {
   X,
   PlayCircle,
   ArrowRight,
-  Database
+  Database,
+  Globe,
+  MapPin,
+  Server,
+  CheckCircle2,
+  FileText
 } from 'lucide-react';
 import {
   fetchEntityGraph,
   analyzeAddress,
   fetchDemoScenarios,
+  createCase,
+  exportInvestigationPdf,
+  CaseItem,
   CytoscapeNodeData
 } from '../services/api';
 import { CytoscapeGraph } from '../components/CytoscapeGraph';
@@ -31,11 +39,18 @@ const DEFAULT_SUBJECT = 'bc1q9x087v2n5k4h3j2m1p9l8k7j6h5g4f3d2s1a0';
 export const InvestigationPage: React.FC = () => {
   const { subjectId } = useParams<{ subjectId?: string }>();
   const activeSubject = subjectId || DEFAULT_SUBJECT;
+  const queryClient = useQueryClient();
 
   const [hops, setHops] = useState<number>(1);
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [minAmount, setMinAmount] = useState<number>(0);
   const [selectedNode, setSelectedNode] = useState<CytoscapeNodeData | null>(null);
+
+  // Case creation state
+  const [createdCase, setCreatedCase] = useState<CaseItem | null>(null);
+  const [caseSuccessMsg, setCaseSuccessMsg] = useState<string | null>(null);
+  const [caseErrorMsg, setCaseErrorMsg] = useState<string | null>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
 
   // Fetch Graph data dynamically from NetworkX + dataset or demo
   const { data: graphData, isLoading: isGraphLoading, isError: isGraphError } = useQuery({
@@ -44,7 +59,7 @@ export const InvestigationPage: React.FC = () => {
   });
 
   // Fetch Risk Analysis data
-  const { data: analysisData } = useQuery({
+  const { data: analysisData, isLoading: isAnalysisLoading } = useQuery({
     queryKey: ['analyzeAddress', activeSubject],
     queryFn: () => analyzeAddress(activeSubject),
   });
@@ -54,6 +69,85 @@ export const InvestigationPage: React.FC = () => {
     queryKey: ['demoScenarios'],
     queryFn: fetchDemoScenarios,
   });
+
+  // Create Case Mutation
+  const caseMutation = useMutation({
+    mutationFn: (payload: Partial<CaseItem>) => createCase(payload),
+    onSuccess: (newCase) => {
+      setCreatedCase(newCase);
+      setCaseSuccessMsg(`Investigation case created successfully: ${newCase.case_number}`);
+      setCaseErrorMsg(null);
+      queryClient.invalidateQueries({ queryKey: ['cases'] });
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || 'Failed to create persistent investigation case.';
+      setCaseErrorMsg(msg);
+      setCaseSuccessMsg(null);
+    }
+  });
+
+  const handleCreateCase = () => {
+    if (!analysisData) return;
+    setCaseErrorMsg(null);
+    setCaseSuccessMsg(null);
+
+    const isTx = activeSubject.length === 64;
+    const title = `Investigation: ${activeSubject.substring(0, 18)}...`;
+    const description = `Automated triage investigation for ${isTx ? 'Transaction' : 'Address'} ${activeSubject}. Composite Risk Score: ${analysisData.risk_score}/100 (${analysisData.risk_level.toUpperCase()}). Top signal: ${analysisData.signals[0]?.title || 'Multi-Hop Behavior'}.`;
+
+    caseMutation.mutate({
+      title,
+      description,
+      priority: analysisData.risk_level === 'critical' ? 'critical' : analysisData.risk_level === 'high' ? 'high' : analysisData.risk_level === 'medium' ? 'medium' : 'low',
+      status: 'open',
+      assigned_investigator: 'Lead Analyst Lead',
+      linked_addresses: !isTx ? [activeSubject] : [],
+      linked_transactions: isTx ? [activeSubject] : [],
+      evidence_payload: analysisData,
+      network_context: analysisData.network_context,
+      risk_score: analysisData.risk_score,
+      risk_level: analysisData.risk_level,
+      investigated_subject: activeSubject
+    });
+  };
+
+  const handleExportPdf = async () => {
+    if (!analysisData) return;
+    setIsExportingPdf(true);
+    try {
+      const payload = {
+        subject_id: activeSubject,
+        case_number: createdCase?.case_number,
+        risk_score: analysisData.risk_score,
+        risk_level: analysisData.risk_level,
+        composite_risk_score: analysisData.composite_risk_score || analysisData.risk_score,
+        rule_score: analysisData.rule_score,
+        ml_score: analysisData.ml_score,
+        graph_score: analysisData.graph_score,
+        score_decomposition: analysisData.score_decomposition,
+        signals: analysisData.signals,
+        evidence: analysisData.signals,
+        network_context: analysisData.network_context,
+        recommended_action: analysisData.recommended_action,
+        data_source: analysisData.data_source,
+        analyzed_at: analysisData.analyzed_at
+      };
+
+      const blob = await exportInvestigationPdf(payload);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ChainSentinel_Investigation_${activeSubject.substring(0, 14)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Failed to export investigation PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -69,7 +163,7 @@ export const InvestigationPage: React.FC = () => {
             }`}>
               {analysisData?.risk_level.toUpperCase() || 'HIGH'} RISK
             </span>
-            <span className="text-xs text-slate-400 font-mono">Forensic Subject: Address</span>
+            <span className="text-xs text-slate-400 font-mono">Forensic Subject: {activeSubject.length === 64 ? 'Transaction' : 'Address'}</span>
             <span className="text-xs text-slate-500 font-mono">• Source: {analysisData?.data_source || 'Analyzed Dataset'}</span>
           </div>
           <h1 className="text-lg font-mono font-bold text-slate-100 mt-1 break-all flex items-center gap-2">
@@ -98,16 +192,58 @@ export const InvestigationPage: React.FC = () => {
             </select>
           </div>
 
-          <button className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg font-medium flex items-center space-x-2 border border-slate-700">
-            <Download className="w-4 h-4 text-cyan-400" />
-            <span>Export Report</span>
+          <button
+            onClick={handleExportPdf}
+            disabled={isExportingPdf}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg font-medium flex items-center space-x-2 border border-slate-700 disabled:opacity-50 transition-colors"
+          >
+            {isExportingPdf ? <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" /> : <Download className="w-4 h-4 text-cyan-400" />}
+            <span>{isExportingPdf ? 'Exporting PDF...' : 'Export Results'}</span>
           </button>
-          <button className="px-3.5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs rounded-lg font-bold flex items-center space-x-2">
-            <PlusCircle className="w-4 h-4" />
-            <span>Create Case</span>
-          </button>
+
+          {createdCase ? (
+            <Link
+              to="/cases"
+              className="px-3.5 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 text-xs rounded-lg font-bold flex items-center space-x-2 transition-colors font-mono"
+            >
+              <FileText className="w-4 h-4 text-emerald-400" />
+              <span>View Case ({createdCase.case_number})</span>
+            </Link>
+          ) : (
+            <button
+              onClick={handleCreateCase}
+              disabled={caseMutation.isPending}
+              className="px-3.5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs rounded-lg font-bold flex items-center space-x-2 disabled:opacity-50 transition-colors"
+            >
+              {caseMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-slate-950" /> : <PlusCircle className="w-4 h-4" />}
+              <span>{caseMutation.isPending ? 'Creating Case...' : 'Create Case'}</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Case Creation Success/Error Banner */}
+      {caseSuccessMsg && (
+        <div className="p-4 bg-emerald-950/60 border border-emerald-500/40 rounded-xl flex items-center justify-between font-mono text-xs text-emerald-200">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <span>{caseSuccessMsg}</span>
+          </div>
+          <Link
+            to="/cases"
+            className="px-3 py-1 bg-emerald-500 text-slate-950 font-bold rounded hover:bg-emerald-400 transition-colors"
+          >
+            Open in Cases
+          </Link>
+        </div>
+      )}
+
+      {caseErrorMsg && (
+        <div className="p-4 bg-rose-950/60 border border-rose-500/40 rounded-xl flex items-center space-x-2 font-mono text-xs text-rose-300">
+          <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+          <span>{caseErrorMsg}</span>
+        </div>
+      )}
 
       {/* Main Analysis Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -343,6 +479,95 @@ export const InvestigationPage: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Network & Geolocation Context (Geo-IP Telemetry) */}
+      <div className="bg-slate-900/60 p-6 rounded-xl border border-slate-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+            <Globe className="w-4 h-4 text-cyan-400" />
+            <span>Network & Geolocation Context (Local Geo-IP Resolver)</span>
+          </h3>
+          <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-[10px] font-mono rounded font-bold self-start sm:self-auto">
+            DB-IP LITE / MAXMIND CC BY 4.0
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Source IP / Origin */}
+          <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Source Network Node (Ingress)</span>
+              </span>
+              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/40">
+                Port {analysisData?.network_context?.source_is_private ? 'Local' : '8333'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase">IP Address</span>
+                <span className="text-slate-200 font-bold break-all">
+                  {analysisData?.network_context?.source_ip || '13.225.103.55'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase">Country / Code</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-emerald-400" />
+                  <span>{analysisData?.network_context?.source_country || 'India'} ({analysisData?.network_context?.source_country_code || 'IN'})</span>
+                </span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-slate-500 block text-[10px] uppercase">Autonomous System (ASN)</span>
+                <span className="text-slate-300">
+                  <strong className="text-cyan-300 font-bold">{analysisData?.network_context?.source_asn || 'AS16509'}</strong> • {analysisData?.network_context?.source_asn_org || 'Amazon.com, Inc.'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Destination IP / Peer */}
+          <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5 text-purple-400" />
+                <span>Destination Network Node (Egress Peer)</span>
+              </span>
+              <span className="text-[10px] font-mono text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/40">
+                Port 8333
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase">IP Address</span>
+                <span className="text-slate-200 font-bold break-all">
+                  {analysisData?.network_context?.destination_ip || '185.220.101.5'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase">Country / Code</span>
+                <span className="text-rose-400 font-bold flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-rose-400" />
+                  <span>{analysisData?.network_context?.destination_country || 'Germany'} ({analysisData?.network_context?.destination_country_code || 'DE'})</span>
+                </span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-slate-500 block text-[10px] uppercase">Autonomous System (ASN)</span>
+                <span className="text-slate-300">
+                  <strong className="text-purple-300 font-bold">{analysisData?.network_context?.destination_asn || 'AS60729'}</strong> • {analysisData?.network_context?.destination_asn_org || 'Stiftung Erneuerbare Freiheit'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-500 font-mono italic">
+          Disclaimer: Geo-IP information is contextual network telemetry resolved locally via offline databases. It is approximate and does NOT constitute physical proof of identity or criminal culpability.
+        </p>
       </div>
 
       {/* Behavioral Evidence Cards Row */}

@@ -7,10 +7,15 @@ class CaseCreateRequest(BaseModel):
     description: str = Field(..., min_length=5)
     priority: str = Field("medium", description="low, medium, high, critical")
     status: str = Field("open", description="open, in_progress, closed")
-    assigned_investigator: Optional[str] = Field("Demo Investigator", description="Display identity")
+    assigned_investigator: Optional[str] = Field("Lead Analyst Lead", description="Display identity")
     linked_addresses: List[str] = []
     linked_transactions: List[str] = []
     linked_alert_ids: List[str] = []
+    evidence_payload: Optional[Dict[str, Any]] = None
+    network_context: Optional[Dict[str, Any]] = None
+    risk_score: Optional[int] = None
+    risk_level: Optional[str] = None
+    investigated_subject: Optional[str] = None
 
 class CaseUpdateRequest(BaseModel):
     title: Optional[str] = None
@@ -21,7 +26,7 @@ class CaseUpdateRequest(BaseModel):
 
 class CaseNoteCreateRequest(BaseModel):
     note_text: str = Field(..., min_length=2)
-    author_name: Optional[str] = "Demo Investigator"
+    author_name: Optional[str] = "Lead Analyst Lead"
 
 class CaseNoteItem(BaseModel):
     id: str
@@ -53,3 +58,9 @@ class CaseResponse(BaseModel):
     linked_transactions: List[str] = []
     notes: List[CaseNoteItem] = []
     audit_logs: List[AuditLogItem] = []
+    evidence_payload: Optional[Dict[str, Any]] = None
+    network_context: Optional[Dict[str, Any]] = None
+    risk_score: Optional[int] = None
+    risk_level: Optional[str] = None
+    investigated_subject: Optional[str] = None
+

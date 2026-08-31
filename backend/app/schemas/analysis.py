@@ -40,6 +40,7 @@ class AnalysisResultResponse(BaseModel):
     recommended_action: str
     data_source: str # demo, uploaded_csv, live_api
     is_ml_fallback: bool = False
+    network_context: Optional[Dict[str, Any]] = None
     disclaimer: str
     analyzed_at: str
 
@@ -69,6 +70,10 @@ class CsvAnalysisSummaryItem(BaseModel):
     pagerank: float = 0.0
     has_cycle: bool = False
     hop_distance: int = 5
+    src_ip: Optional[str] = None
+    dst_ip: Optional[str] = None
+    geo_country: Optional[str] = None
+    asn: Optional[str] = None
     data_source_label: str = "DATA SOURCE: USER-UPLOADED SYNTHETIC DATA"
 
 class CsvAnalysisBatchResponse(BaseModel):

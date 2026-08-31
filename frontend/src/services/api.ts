@@ -16,6 +16,10 @@ apiClient.interceptors.request.use((config) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Let the browser and axios automatically compute multipart/form-data boundary for FormData
+  if (config.data instanceof FormData && config.headers) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 }, (error) => Promise.reject(error));
 
@@ -129,6 +133,22 @@ export interface RiskDecomposition {
   graph_score: number;
 }
 
+export interface NetworkContextResponse {
+  source_ip: string;
+  source_country: string;
+  source_country_code: string;
+  source_asn: string;
+  source_asn_org: string;
+  source_is_private?: boolean;
+  destination_ip: string;
+  destination_country: string;
+  destination_country_code: string;
+  destination_asn: string;
+  destination_asn_org: string;
+  destination_is_private?: boolean;
+  disclaimer?: string;
+}
+
 export interface AnalysisResultResponse {
   subject_type: string;
   subject_id: string;
@@ -148,6 +168,7 @@ export interface AnalysisResultResponse {
   recommended_action: string;
   data_source: string;
   is_ml_fallback?: boolean;
+  network_context?: NetworkContextResponse;
   disclaimer: string;
   analyzed_at: string;
 }
@@ -300,6 +321,11 @@ export interface CaseItem {
   linked_transactions: string[];
   notes: CaseNoteItem[];
   audit_logs: AuditLogItem[];
+  evidence_payload?: Record<string, any>;
+  network_context?: NetworkContextResponse;
+  risk_score?: number;
+  risk_level?: string;
+  investigated_subject?: string;
 }
 
 export interface GenerateDatasetRequest {
@@ -359,6 +385,18 @@ export interface DatasetAnalysisResultItem {
   computed_risk_score: number;
   computed_risk_level: 'low' | 'medium' | 'high' | 'critical';
   top_signal: string;
+  timestamp?: string;
+  src_ip?: string;
+  dst_ip?: string;
+  src_port?: number;
+  dst_port?: number;
+  geo_country?: string;
+  asn?: string;
+  src_country?: string;
+  dst_country?: string;
+  src_asn?: string;
+  dst_asn?: string;
+  network_context?: NetworkContextResponse;
 }
 
 export interface DatasetAnalysisResponse {
@@ -430,11 +468,7 @@ export const analyzeTransaction = async (txid: string): Promise<AnalysisResultRe
 export const analyzeCsv = async (file: File): Promise<CsvAnalysisBatchResponse> => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await apiClient.post<CsvAnalysisBatchResponse>('/analyze/csv', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const response = await apiClient.post<CsvAnalysisBatchResponse>('/analyze/csv', formData);
   return response.data;
 };
 
@@ -495,22 +529,14 @@ export const generateSyntheticDataset = async (req: GenerateDatasetRequest): Pro
 export const uploadDatasetFile = async (file: File): Promise<DatasetExplorerResponse> => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await apiClient.post<DatasetExplorerResponse>('/dataset/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const response = await apiClient.post<DatasetExplorerResponse>('/dataset/upload', formData);
   return response.data;
 };
 
 export const validateDatasetFile = async (file: File): Promise<DatasetValidationReport> => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await apiClient.post<DatasetValidationReport>('/dataset/validate', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const response = await apiClient.post<DatasetValidationReport>('/dataset/validate', formData);
   return response.data;
 };
 
@@ -520,6 +546,20 @@ export const getDatasetDownloadUrl = (datasetId: string): string => {
 
 export const getCasePdfUrl = (caseId: string): string => {
   return `${API_BASE_URL}/cases/${caseId}/report.pdf`;
+};
+
+export const exportInvestigationPdf = async (payload: Record<string, any>): Promise<Blob> => {
+  const response = await apiClient.post('/analyze/export-pdf', payload, {
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
+export const exportCasePdfBlob = async (caseId: string): Promise<Blob> => {
+  const response = await apiClient.get(`/cases/${caseId}/report.pdf`, {
+    responseType: 'blob',
+  });
+  return response.data;
 };
 
 export interface ConfusionMatrixInfo {

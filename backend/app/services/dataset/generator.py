@@ -170,11 +170,35 @@ class SyntheticDatasetGenerator:
                 tx_size = 225
                 fee_btc = 0.0020
 
+            # Realistic synthetic IP pools
+            IP_POOLS = [
+                ("198.51.100.", "United States", "AS64500"),
+                ("8.8.8.", "United States", "AS15169"),
+                ("13.225.103.", "India", "AS16509"),
+                ("185.220.101.", "Germany", "AS60729"),
+                ("203.0.113.", "Singapore", "AS64501"),
+                ("52.84.12.", "United Kingdom", "AS16509"),
+                ("133.242.10.", "Japan", "AS9370"),
+                ("193.134.1.", "Switzerland", "AS13030")
+            ]
+            src_pool = self.rng.choice(IP_POOLS)
+            dst_pool = self.rng.choice(IP_POOLS)
+            src_ip = f"{src_pool[0]}{self.rng.randint(1, 254)}"
+            dst_ip = f"{dst_pool[0]}{self.rng.randint(1, 254)}"
+            src_port = self.rng.choice([8333, 18333, 49152, 51234, 55432])
+            dst_port = 8333
+
             current_time = base_time + timedelta(seconds=i * 60 + time_delta)
 
             records.append({
                 "transaction_id": txid,
                 "timestamp": current_time.isoformat(),
+                "src_ip": src_ip,
+                "dst_ip": dst_ip,
+                "src_port": src_port,
+                "dst_port": dst_port,
+                "geo_country": src_pool[1],
+                "asn": src_pool[2],
                 "input_address": input_addr,
                 "output_address": output_addr,
                 "amount_btc": amount_btc,
@@ -193,7 +217,8 @@ class SyntheticDatasetGenerator:
 
     def to_csv_string(self, records: List[Dict[str, Any]]) -> str:
         fieldnames = [
-            "transaction_id", "timestamp", "input_address", "output_address",
+            "transaction_id", "timestamp", "src_ip", "dst_ip", "src_port", "dst_port",
+            "geo_country", "asn", "input_address", "output_address",
             "amount_btc", "input_count", "output_count", "transaction_size",
             "fee_btc", "block_height", "time_to_next_transaction",
             "unique_counterparties", "scenario", "label"

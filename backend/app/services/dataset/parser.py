@@ -6,11 +6,21 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple, Optional
 from pydantic import BaseModel, Field
 
+from app.services.geoip import geoip_service
+
 FIELD_MAPPINGS: Dict[str, List[str]] = {
     "transaction_id": ["transaction_id", "txid", "hash", "tx_hash", "id"],
     "timestamp": ["timestamp", "time", "datetime", "created_at", "date"],
-    "input_address": ["input_address", "from_address", "sender", "source_address", "input_addr", "inputs"],
-    "output_address": ["output_address", "to_address", "receiver", "destination_address", "output_addr", "outputs"],
+    "src_ip": ["src_ip", "source_ip", "ip_src", "client_ip", "ip", "src_host", "source_address_ip"],
+    "dst_ip": ["dst_ip", "destination_ip", "ip_dst", "server_ip", "peer_ip", "dest_ip", "target_ip"],
+    "src_port": ["src_port", "source_port", "port_src", "client_port"],
+    "dst_port": ["dst_port", "destination_port", "port_dst", "server_port", "dest_port"],
+    "input_address": ["input_address", "from_address", "sender", "source_address", "input_addr", "inputs", "input_addresses"],
+    "output_address": ["output_address", "to_address", "receiver", "destination_address", "output_addr", "outputs", "output_addresses"],
+    "input_addresses": ["input_addresses", "inputs", "input_addrs"],
+    "output_addresses": ["output_addresses", "outputs", "output_addrs"],
+    "input_amounts": ["input_amounts", "inputs_values"],
+    "output_amounts": ["output_amounts", "outputs_values"],
     "amount_btc": ["amount_btc", "amount", "input_value_btc", "output_value_btc", "value_btc", "value", "btc"],
     "input_count": ["input_count", "inputs_count", "in_cnt", "num_inputs"],
     "output_count": ["output_count", "outputs_count", "out_cnt", "num_outputs"],
@@ -18,7 +28,9 @@ FIELD_MAPPINGS: Dict[str, List[str]] = {
     "block_height": ["block_height", "block", "height"],
     "time_to_next_transaction": ["time_to_next_transaction", "time_delta", "forwarding_delay", "delay_seconds"],
     "scenario": ["scenario", "behavioral_scenario", "pattern", "type"],
-    "label": ["label", "risk_label", "category", "target"]
+    "label": ["label", "risk_label", "category", "target"],
+    "geo_country": ["geo_country", "country", "source_country", "src_country", "geo", "location"],
+    "asn": ["asn", "autonomous_system", "source_asn", "src_asn"]
 }
 
 UNSECURE_KEYS = ["private_key", "secret", "seed_phrase", "mnemonic", "password", "privkey"]
@@ -36,6 +48,17 @@ class NormalizedTransaction(BaseModel):
     time_to_next_transaction: float = 300.0
     scenario: str = "normal"
     label: str = "normal"
+    src_ip: Optional[str] = None
+    dst_ip: Optional[str] = None
+    src_port: Optional[int] = 8333
+    dst_port: Optional[int] = 8333
+    geo_country: Optional[str] = None
+    asn: Optional[str] = None
+    src_country: Optional[str] = None
+    dst_country: Optional[str] = None
+    src_asn: Optional[str] = None
+    dst_asn: Optional[str] = None
+    network_context: Optional[Dict[str, Any]] = None
 
 class FileParseResult(BaseModel):
     file_type: str
@@ -101,6 +124,36 @@ class UniversalDatasetParser:
         except ValueError:
             time_delta = 300.0
 
+        # Geo-IP and Network fields
+        raw_src_ip = UniversalDatasetParser._map_field(row, "src_ip")
+        raw_dst_ip = UniversalDatasetParser._map_field(row, "dst_ip")
+        src_ip = str(raw_src_ip).strip() if raw_src_ip else None
+        dst_ip = str(raw_dst_ip).strip() if raw_dst_ip else None
+
+        try:
+            src_port = int(UniversalDatasetParser._map_field(row, "src_port") or 8333)
+        except ValueError:
+            src_port = 8333
+
+        try:
+            dst_port = int(UniversalDatasetParser._map_field(row, "dst_port") or 8333)
+        except ValueError:
+            dst_port = 8333
+
+        supplied_geo_country = UniversalDatasetParser._map_field(row, "geo_country")
+        supplied_asn = UniversalDatasetParser._map_field(row, "asn")
+
+        # Geo-IP automatic resolution and enrichment
+        geo_pair = geoip_service.resolve_pair(src_ip, dst_ip)
+        
+        geo_country = str(supplied_geo_country).strip() if supplied_geo_country else None
+        if not geo_country or geo_country.lower() in ["unknown", ""]:
+            geo_country = geo_pair["source_country"] if geo_pair["source_country"] != "Unknown" else geo_pair["destination_country"]
+
+        asn = str(supplied_asn).strip() if supplied_asn else None
+        if not asn or asn.lower() in ["unknown", ""]:
+            asn = geo_pair["source_asn"] if geo_pair["source_asn"] != "Unknown" else geo_pair["destination_asn"]
+
         norm_tx = NormalizedTransaction(
             transaction_id=str(txid).strip(),
             timestamp=ts,
@@ -113,7 +166,18 @@ class UniversalDatasetParser:
             block_height=895200,
             time_to_next_transaction=time_delta,
             scenario=scenario,
-            label=label
+            label=label,
+            src_ip=src_ip,
+            dst_ip=dst_ip,
+            src_port=src_port,
+            dst_port=dst_port,
+            geo_country=geo_country,
+            asn=asn,
+            src_country=geo_pair["source_country"],
+            dst_country=geo_pair["destination_country"],
+            src_asn=geo_pair["source_asn"],
+            dst_asn=geo_pair["destination_asn"],
+            network_context=geo_pair
         )
         return norm_tx, warnings
 
